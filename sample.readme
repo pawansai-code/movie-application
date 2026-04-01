@@ -1,0 +1,164 @@
+eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJiMWI2ZTUyZDY4YTMxNTgzMGRlODVkOTE1ZjcyNTYzZCIsIm5iZiI6MTc3NDk2Njk2OS42MDgsInN1YiI6IjY5Y2JkOGI5OTY5N2ZkNzU3ZWM3NzNlOCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.F_jjEsMf-qq0m2vAd5VmQ2K9OPpgQQmVjGJnzFL6dzk
+
+
+
+
+*api.ts code*
+
+export const TMDB_CONFIG = {
+  BASE_URL: "https://api.themoviedb.org/3",
+  API_KEY: process.env.EXPO_PUBLIC_MOVIE_API_KEY,
+  headers: {
+    accept: "application/json",
+    Authorization: `Bearer ${process.env.EXPO_PUBLIC_MOVIE_API_KEY}`,
+  },
+};
+
+export const fetchMovies = async ({
+  query,
+}: {
+  query: string;
+}): Promise<Movie[]> => {
+  const endpoint = query
+    ? `${TMDB_CONFIG.BASE_URL}/search/movie?query=${encodeURIComponent(query)}`
+    : `${TMDB_CONFIG.BASE_URL}/discover/movie?sort_by=popularity.desc`;
+
+  const response = await fetch(endpoint, {
+    method: "GET",
+    headers: TMDB_CONFIG.headers,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch movies: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data.results;
+};
+
+export const fetchMovieDetails = async (
+  movieId: string
+): Promise<MovieDetails> => {
+  try {
+    const response = await fetch(
+      `${TMDB_CONFIG.BASE_URL}/movie/${movieId}?api_key=${TMDB_CONFIG.API_KEY}`,
+      {
+        method: "GET",
+        headers: TMDB_CONFIG.headers,
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch movie details: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error fetching movie details:", error);
+    throw error;
+  }
+};
+
+*usefetch.ts code*
+
+import { useState, useEffect } from "react";
+
+const useFetch = <T>(fetchFunction: () => Promise<T>, autoFetch = true) => {
+  const [data, setData] = useState<T | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const result = await fetchFunction();
+      setData(result);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err : new Error("An unknown error occurred")
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const reset = () => {
+    setData(null);
+    setError(null);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (autoFetch) {
+      fetchData();
+    }
+  }, []);
+
+  return { data, loading, error, refetch: fetchData, reset };
+};
+
+export default useFetch;
+
+
+
+
+
+https://www.themealdb.com/api.php -----> website URL of the ThemealDB api 
+
+*ThemealDB api.ts code*
+
+export const MEALDB_CONFIG = {
+  BASE_URL: "https://www.themealdb.com/api/json/v1/1",
+  headers: {
+    accept: "application/json",
+  },
+};
+
+export const fetchMeals = async ({
+  query,
+}: {
+  query: string;
+}): Promise<any[]> => {
+  const endpoint = query
+    ? `${MEALDB_CONFIG.BASE_URL}/search.php?s=${encodeURIComponent(query)}`
+    : `${MEALDB_CONFIG.BASE_URL}/search.php?s=`;
+
+  const response = await fetch(endpoint, {
+    method: "GET",
+    headers: MEALDB_CONFIG.headers,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch meals: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data.meals || [];
+};
+
+export const fetchMealDetails = async (
+  mealId: string
+): Promise<any> => {
+  try {
+    const response = await fetch(
+      `${MEALDB_CONFIG.BASE_URL}/lookup.php?i=${mealId}`,
+      {
+        method: "GET",
+        headers: MEALDB_CONFIG.headers,
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch meal details: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.meals ? data.meals[0] : null;
+  } catch (error) {
+    console.error("Error fetching meal details:", error);
+    throw error;
+  }
+};
